@@ -2,6 +2,31 @@
 <project version="4">
   <component name="PublishConfigData" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
+      <paths name="Jetson NX (ac1df09f-72b7-4673-879e-858563c49a63)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/tmp.Ilm3jk8UwC" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-deploynx" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug-mingw" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="JetsonNX">
+        <serverdata>
+          <mappings>
+            <mapping deploy="SLAM_Logger" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="Remote Host (104a371c-e8eb-4f85-9336-6dc058f4da97)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="Remote Host (3c167d5e-5af2-4ccb-9f56-45fd6e7dd4eb)">
         <serverdata>
           <mappings>

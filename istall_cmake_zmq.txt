@@ -1,0 +1,49 @@
+# install CMAKE
+sudo apt remove cmake
+sudo apt purge --auto-remove cmake
+
+version=3.21
+build=1
+mkdir ~/temp
+cd ~/temp
+wget https://cmake.org/files/v$version/cmake-$version.$build.tar.gz
+tar -xzvf cmake-$version.$build.tar.gz
+cd cmake-$version.$build/
+
+sudo apt-get install openssl libssl-dev libcurl4-openssl-dev
+
+sudo ./bootstrap
+sudo make -j6
+sudo make install
+
+
+
+# install zeromq
+sudo apt-get install libzmq3-dev
+cd ~
+git clone https://github.com/zeromq/cppzmq.git
+cd cppzmq
+mkdir build
+cd build
+cmake ..
+sudo make -j4
+sudo make install
+sudo ldconfig
+
+wget http://download.zeromq.org/zeromq-4.0.5.tar.gz
+tar xzvf zeromq-4.0.5.tar.gz
+cd zeromq-4.0.5
+./configure
+make
+sudo make install
+cd ..
+
+
+# install realsense
+sudo apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE
+
+sudo add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo bionic main" -u
+
+sudo apt-get install librealsense2-utils
+sudo apt-get install librealsense2-dev
+
