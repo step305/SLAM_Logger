@@ -19,7 +19,7 @@ cv::Mat distCoefs = (cv::Mat1d(1, 5) << 0.0103592, -0.06719747, -0.001601, 0.001
 
 int const npoints = 1000;
 const float  threshold_close = 8.0f;
-const int  max_keypoints = 200;
+const int  max_keypoints = 100;
 
 bool response_comparator(const cv::KeyPoint& p1, const cv::KeyPoint& p2)
 {

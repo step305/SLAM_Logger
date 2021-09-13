@@ -16,6 +16,9 @@ sudo ./bootstrap
 sudo make -j6
 sudo make install
 
+sudo apt update
+sudo apt install hdf5-tools
+
 
 
 # install zeromq

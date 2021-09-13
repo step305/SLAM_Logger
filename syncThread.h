@@ -13,15 +13,21 @@
 #include <stdint.h>
 #include <chrono>
 #include "hdf5.h"
+#include <opencv2/core/core.hpp>
+
+#define slam_queue_len      300
+#define LOG_SLAM_VIDEO      true
 
 typedef struct {
     float x;
     float y;
 } PointCoordsType;
 
+#pragma pack(1)
 typedef struct {
     uint8_t val[32];
 } DescriptorType;
+#pragma pack()
 
 class SyncPacket {
 public:
@@ -30,13 +36,39 @@ public:
     float dangle[3];
     std::vector<PointCoordsType> points;
     std::vector<DescriptorType> descriptors;
+    bool sync;
 
     SyncPacket();
     void add_imu_data(std::array<float,3> dangle_vals,  std::array<float,3> adc_vals);
     void add_features_data(cv::Mat descriptors, std::vector<cv::Point2f> features);
 };
 
+typedef struct {
+    long long unsigned ts;
+    std::vector<cv::Point2f>  matches;
+    std::vector<cv::Point2f>  all;
+    std::vector<cv::Point2f>  erased;
+    bool sync;
+    float heading;
+    float pitch;
+    float roll;
+    float bwx;
+    float bwy;
+    float bwz;
+    float swx;
+    float swy;
+    float swz;
+    float mwxy;
+    float mwxz;
+    float mwyx;
+    float mwyz;
+    float mwzx;
+    float mwzy;
+} SLAMLogMessageStruct;
+
 extern std::atomic<bool> quitSync;
+extern circ_queue::CircularFifo <SyncPacket,slam_queue_len> queueSLAM;
+extern circ_queue::CircularFifo <SLAMLogMessageStruct,slam_queue_len> queueLogSLAM;
 
 void syncThread();
 

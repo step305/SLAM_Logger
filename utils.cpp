@@ -21,3 +21,10 @@ void get_descriptor(cv::Mat& mat, int row, uchar *a)
     uchar* p = mat.ptr<uchar>(row);
     memcpy(a,p,sizeof(uchar)*mat.cols);
 }
+
+//Copy row of Mat to uchar array
+void get_descriptor32(cv::Mat& mat, int row, int32_t *a)
+{
+    int32_t* p = mat.ptr<int32_t>(row);
+    memcpy(a,p,sizeof(uchar)*mat.cols);
+}

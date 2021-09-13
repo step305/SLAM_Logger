@@ -61,6 +61,8 @@ void append_dataset(const char* dataset_name, hid_t file_id, hid_t space_id, flo
 
 void syncThread() {
     IMUMessageStruct imu_msg;
+    bool sync_imu = false;
+    bool sync_camera = false;
 
     std::array<float,3> sync_imu_packet;
     sync_imu_packet[0] = -999999.0f; sync_imu_packet[1] = -999999.0f; sync_imu_packet[2] = -999999.0f;
@@ -79,13 +81,19 @@ void syncThread() {
     int fps_orb_cnt = 0;
     float fps_orb = 0.0f;
 
+    long long unsigned t0_slam, t1_slam;
+    int fps_slam_cnt = 0;
+    float fps_slam = 0.0f;
+
     t0_orb = get_us();
     t0_imu = get_us();
+    t0_slam = get_us();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     cv::setNumThreads(0); // Setting the number of thread to 0.
     cv::setNumThreads(1); // Setting the number of thread to 1.
 
-    cv::VideoWriter video("video_slam.avi", cv::VideoWriter::fourcc('M','J','P','G'), FPS, cv::Size(640, 480), true);
+    cv::VideoWriter video("video_slam.avi", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), FPS,
+                          cv::Size(640, 480), true);
 
     //cv::VideoWriter video("appsrc ! video/x-raw, format=BGR ! queue ! videoconvert ! video/x-raw,format=BGRx ! "
     //                      "nvvidconv ! nvv4l2h264enc ! h264parse ! matroskamux ! filesink location=video_slam_raw_log.mkv ",
@@ -95,11 +103,21 @@ void syncThread() {
     //    abort();
     //}
 
+    std::vector<SLAMLogMessageStruct> log_slam;
+    SLAMLogMessageStruct slam_log_msg;
+    std::vector<cv::Point2f> matched_points;
+    std::vector<cv::Point2f> erased_points;
+    std::vector<cv::Point2f> all_points;
+    matched_points.reserve(50);
+    erased_points.reserve(50);
+    all_points.reserve(100);
+
     std::cout << color_fmt_green << "syncThread:: Video writer started." << color_fmt_reset << std::endl;
 
     std::cout << std::endl << color_fmt_green << "syncThread:: Started!" << color_fmt_reset << std::endl;
     while (!quitSync) {
         if (queueSerial.pop(imu_msg)) {
+            sync_imu = true;
             if (fps_imu_cnt == FPS_MAX_CNT) {
                 t1_imu = get_us();
                 fps_imu = (float)fps_imu_cnt/(float)(t1_imu - t0_imu)*1.0e6f;
@@ -111,11 +129,20 @@ void syncThread() {
             };
             packet.add_imu_data(imu_msg.dthe, imu_msg.adc);
             packet.ts = imu_msg.ts;
+            packet.sync = false;
             log_imu.push_back(packet);
+            if (sync_camera) {
+                if (queueSLAM.push(packet) == false) {
+                    std::cout << color_fmt_green << "syncThread:: Error!::" << "SLAM queue full!" << color_fmt_reset
+                              << std::endl;
+                    abort();
+                }
+            }
             //std::cout << color_fmt_green << "syncThread:: imu sync" << color_fmt_reset << std::endl;
         };
         CAMMessageStruct feature_msg;
         if (queueCamera.pop(feature_msg)) {
+            sync_camera = true;
             if (fps_orb_cnt == FPS_MAX_CNT) {
                 t1_orb = get_us();
                 fps_orb = (float)fps_orb_cnt/(float)(t1_orb - t0_orb)*1.0e6f;
@@ -127,14 +154,116 @@ void syncThread() {
             };
             packet.ts = feature_msg.ts;
             packet.add_features_data(feature_msg.descriptors, feature_msg.points);
-            video.write(feature_msg.frame);
+            packet.sync = true;
             log_feature.push_back(packet);
+            if (sync_imu) {
+                if (queueSLAM.push(packet) == false) {
+                    std::cout << color_fmt_green << "syncThread:: Error!::" << "SLAM queue full!" << color_fmt_reset
+                              << std::endl;
+                    abort();
+                }
+            }
+            if (!LOG_SLAM_VIDEO) {
+                video.write(feature_msg.frame);
+            } else {
+                //Draw matched features
+                for (const auto &pt : matched_points)
+                    drawMarker(feature_msg.frame, pt, cv::Scalar(0, 255, 255), cv::MARKER_SQUARE, 10, 4, 16);
+
+                //Draw all map features
+                for (const auto &pt : all_points)
+                    drawMarker(feature_msg.frame, pt, cv::Scalar(0, 200, 0), cv::MARKER_TILTED_CROSS, 5, 3, 16);
+
+                //Draw erased features
+                for (const auto &pt : erased_points)
+                    drawMarker(feature_msg.frame, pt, cv::Scalar(0, 0, 255), cv::MARKER_SQUARE, 10, 4, 16);
+
+                //Display Angles
+                std::stringstream stream;
+                stream << std::fixed << std::setprecision(1);
+                if (slam_log_msg.bwx >= 0)
+                    stream << "bwx +" << slam_log_msg.bwx * 180.0f / 3.1415f * 3600.0f;
+                else
+                    stream << "bwx " << slam_log_msg.bwx * 180.0f / 3.1415f * 3600.0f;
+                cv::putText(feature_msg.frame, stream.str(), cv::Point2f(500, 300), cv::FONT_HERSHEY_COMPLEX_SMALL, 1,
+                            cv::Scalar(0, 0, 255), 2);
+                stream.str("");
+
+                if (slam_log_msg.bwy >= 0)
+                    stream << "bwy +" << slam_log_msg.bwy * 180.0f / 3.1415f * 3600.0f;
+                else
+                    stream << "bwy " << slam_log_msg.bwy * 180.0f / 3.1415f * 3600.0f;
+                cv::putText(feature_msg.frame, stream.str(), cv::Point2f(500, 330), cv::FONT_HERSHEY_COMPLEX_SMALL, 1,
+                            cv::Scalar(0, 0, 255), 2);
+                stream.str("");
+
+                if (slam_log_msg.bwz >= 0)
+                    stream << "bwz +" << slam_log_msg.bwz * 180.0f / 3.1415f * 3600.0f;
+                else
+                    stream << "bwz " << slam_log_msg.bwz * 180.0f / 3.1415f * 3600.0f;
+                cv::putText(feature_msg.frame, stream.str(), cv::Point2f(500, 360), cv::FONT_HERSHEY_COMPLEX_SMALL, 1,
+                            cv::Scalar(0, 0, 255), 2);
+                stream.str("");
+
+                if (slam_log_msg.heading >= 0)
+                    stream << "Z +" << slam_log_msg.heading;
+                else
+                    stream << "Z " << slam_log_msg.heading;
+                cv::putText(feature_msg.frame, stream.str(), cv::Point2f(500, 390), cv::FONT_HERSHEY_COMPLEX_SMALL, 1,
+                            cv::Scalar(0, 0, 255), 2);
+                stream.str("");
+                if (slam_log_msg.pitch >= 0)
+                    stream << "Y +" << slam_log_msg.pitch;
+                else
+                    stream << "Y " << slam_log_msg.pitch;
+                cv::putText(feature_msg.frame, stream.str(), cv::Point2f(500, 420), cv::FONT_HERSHEY_COMPLEX_SMALL, 1,
+                            cv::Scalar(0, 0, 255), 2);
+                stream.str("");
+                if (slam_log_msg.roll >= 0)
+                    stream << "X +" << slam_log_msg.roll;
+                else
+                    stream << "X " << slam_log_msg.roll;
+                cv::putText(feature_msg.frame, stream.str(), cv::Point2f(500, 450), cv::FONT_HERSHEY_COMPLEX_SMALL, 1,
+                            cv::Scalar(0, 0, 255), 2);
+                video.write(feature_msg.frame);
+            }
             packet.add_imu_data(sync_imu_packet, sync_imu_packet);
             packet.ts = feature_msg.ts;
             log_imu.push_back(packet);
             //std::cout << color_fmt_green << "syncThread:: orb sync" << color_fmt_reset << std::endl;
         };
+
+        if (queueLogSLAM.pop(slam_log_msg)) {
+            if (fps_slam_cnt == FPS_MAX_CNT) {
+                t1_slam = get_us();
+                fps_slam = (float) fps_slam_cnt / (float) (t1_slam - t0_slam) * 1.0e6f;
+                t0_slam = get_us();
+                fps_slam_cnt = 0;
+                std::cout << color_fmt_green << "syncThread:: SLAM Log FPS = " << std::fixed << std::setprecision(2)
+                          << fps_slam << "fps" << color_fmt_reset << std::endl;
+            } else {
+                fps_slam_cnt++;
+            };
+            log_slam.push_back(slam_log_msg);
+            if (slam_log_msg.sync) {
+                matched_points.clear();
+                erased_points.clear();
+                all_points.clear();
+                for (const auto &pt : slam_log_msg.matches)
+                    matched_points.push_back(pt);
+
+                //Draw all map features
+                for (const auto &pt : slam_log_msg.all)
+                    all_points.push_back(pt);
+
+                //Draw erased features
+                for (const auto &pt : slam_log_msg.erased)
+                    erased_points.push_back(pt);
+            }
+        };
     }
+
+    // TODO logging of SLAM data
 
     std::cout << "Logging..." << std::endl;
 
@@ -234,7 +363,7 @@ void syncThread() {
     delete [] ts_imu;
     delete [] ts_feature;
 
-    std::cout << color_fmt_green << "syncThread:: " << N_imu + N_feature << "total" << color_fmt_green << std::endl;
+    std::cout << color_fmt_green << "syncThread:: " << N_imu + N_feature << "total" << color_fmt_reset << std::endl;
 
-    std::cout << color_fmt_green << "syncThread:: Finished!" << color_fmt_green << std::endl;
+    std::cout << color_fmt_green << "syncThread:: Finished!" << color_fmt_reset << std::endl;
 }

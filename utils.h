@@ -20,5 +20,6 @@ extern char color_fmt_reset[];
 
 long long unsigned get_us();
 void get_descriptor(cv::Mat& mat, int row, uchar *a);
+void get_descriptor32(cv::Mat& mat, int row, int32_t *a);
 
 #endif //SLAM_LOGGER_UTILS_H
