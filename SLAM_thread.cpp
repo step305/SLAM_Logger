@@ -18,8 +18,8 @@ int SLAMThread() {
     cam.kc[2] = -0.001601f;
     cam.kc[3] = 0.00155616f;
     cam.kc[4] = 0.19119122f;
-    cam.frame_rate = 1.0f/15.0f;
-    float dt = 1.0f/205.0f;
+    cam.frame_rate = 1.0f/10.0f;
+    float dt = 1.0f/98.4f;
 
     //Angles
     float r[3];
@@ -50,7 +50,7 @@ int SLAMThread() {
     P(0,0) = P(1,1) = P(2,2) = 1e-20f;      // attitude errors
     P(3,3) = P(4,4) = P(5,5) = 1e-3f;       // gyro bias errors
     P(6,6) = P(7,7) = P(8,8) = 1e-3f;       // gyro scale errors
-    P(9,9) = P(10,10) = P(11,11) = 1e-3f;   // misalignment errors
+    P(9,9) = P(10,10) = P(11,11) = 1e-7f;   // misalignment errors
     P(12,12) = P(13,13) = P(14,14) = 1e-3f; // misalignment errors
 
     //Feature Map
@@ -140,7 +140,9 @@ int SLAMThread() {
 
             if (queueLogSLAM.push(msgREC) == false) {
                 std::cout << color_fmt_red << "SLAMThread:: Error!::" << "Queue full!" << color_fmt_reset << std::endl;
-                abort();
+                exit_flag = 1;
+                quitSLAM = true;
+                break;
             }
         } // if packet
     } // while

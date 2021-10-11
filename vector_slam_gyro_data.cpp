@@ -84,9 +84,9 @@ void SLAM( MapType &featureMap, Eigen::Matrix<float, Eigen::Dynamic,Eigen::Dynam
         // Attitude errors noise
         float na = 1e-4f;
         // Bias noise
-        float nr = 1e-4f;
+        float nr = 1e-3f;
         // Scale noise
-        float ns = 1e-7f;
+        float ns = 1e-3f;
         // Misalignment noise
         float nm = 1e-3f;
         Eigen::Matrix<float,nxv,1> diag;
@@ -243,32 +243,44 @@ void SLAM( MapType &featureMap, Eigen::Matrix<float, Eigen::Dynamic,Eigen::Dynam
                             Cbneb(1,2) = -en_mes(0);
                             Cbneb(2,0) = -en_mes(1);
                             Cbneb(2,1) =  en_mes(0);
-                            Eigen::Matrix<float,3,3>  Hv;
+                            /*Eigen::Matrix<float,3,3>  Hv;
                             Eigen::Matrix<float,3,3>  Hf;
                             Hv = -Cnb * Cbneb;
                             Hf =  Cnb;
                             Eigen::Matrix<float,3,3>  HvT = Hv.transpose();
-                            Eigen::Matrix<float,3,3>  HfT = Hf.transpose();
+                            Eigen::Matrix<float,3,3>  HfT = Hf.transpose();*/
+                            Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> H(nxf, nstate);
+                            H = Eigen::MatrixXf::Zero(nxf, nstate);
+                            H.block(0, 0, nxf, nxf) = -Cnb*Cbneb;
+                            H.block(0, feature.pos, nxf, nxf) = Cnb;
+
 
                             //Innovation Covariance
-                            Eigen::Matrix<float,3,3> Pvv = P.topLeftCorner( 3, 3 );
+                            /*Eigen::Matrix<float,3,3> Pvv = P.topLeftCorner( 3, 3 );
                             Eigen::Matrix<float,3,3> Pvf = P.block<3,3>(0,feature.pos);
                             Eigen::Matrix<float,3,3> Pfv = P.block<3,3>(feature.pos,0);
                             Eigen::Matrix<float,3,3> Pff = P.block<3,3>(feature.pos,feature.pos);
-                            S = ( Hv * Pvv + Hf * Pfv ) * HvT + ( Hv * Pvf + Hf * Pff ) * HfT + R;
+                            S = ( Hv * Pvv + Hf * Pfv ) * HvT + ( Hv * Pvf + Hf * Pff ) * HfT + R;*/
+
+                            //Joseph update
+                            auto HT = H.transpose();
+                            S = H * P * HT + R;
+
                             Sinv = S.inverse();
 
                             //Check Chi2 threshold
-                            float chi2 = V.transpose() * Sinv * V;
+                            auto VT = V.transpose();
+                            float chi2 = VT * Sinv * V;
 
                             //If threshold was met
-                            if ( chi2 < 6.25 ) {
+                            if ( chi2 < 6.25f ) {
                                 //Matched   feature
                                 feature.mat = true;
                                 nmatch++;
 
                                 //Kalman Gain
-                                int pos = 0;
+
+                                /*int pos = 0;
                                 K = Eigen::MatrixXf::Zero( nstate, nxf );
                                 KH = Eigen::MatrixXf::Zero( nstate, nstate );
 
@@ -282,11 +294,22 @@ void SLAM( MapType &featureMap, Eigen::Matrix<float, Eigen::Dynamic,Eigen::Dynam
                                 for (int k = 0; k < nstate; k++) {
                                     KH(k, k) += 1.0f;
                                 }
+                                 */
+                                K = Eigen::MatrixXf::Zero( nstate, nxf );
+                                KH = Eigen::MatrixXf::Zero( nstate, nstate );
+                                K = (P*HT)*Sinv;
+                                KH = -K*H;
+                                for (int k = 0; k < nstate; k++) {
+                                    KH(k, k) += 1.0f;
+                                }
+
                                 auto KT = K.transpose();
                                 auto KHT = KH.transpose();
 
                                 //Update Covariance
                                 P = KH * P * KHT + K * R * KT;
+
+                                //std::cout << K*1000000 << std::endl;
                                 //Update State
                                 X += K * V;
 
@@ -339,6 +362,13 @@ void SLAM( MapType &featureMap, Eigen::Matrix<float, Eigen::Dynamic,Eigen::Dynam
             feature.en = feature.en / vec_norm(vec, 3);
             feature.cnt_obs += feature.obs;
             feature.cnt_mat += feature.mat;
+            if (feature.obs) {
+                feature.last_observed = get_us();
+            }
+            if ((get_us() - feature.last_observed) > HISTORY_MAP_LEN*1000000) {
+                feature.cnt_mat = 0;
+                feature.cnt_obs = 100;
+            }
         }
 
         //MAP MANAGEMENT: Delete faulty features
@@ -423,11 +453,13 @@ void SLAM( MapType &featureMap, Eigen::Matrix<float, Eigen::Dynamic,Eigen::Dynam
                 P = P_new;
 
                 //Feature covariance
+                auto Pcopy = P.topLeftCorner( nxv, nxv );
                 P.block( feature.pos, feature.pos, nxf, nxf ) =
-                    Hv * P.topLeftCorner( nxv, nxv ) * HvT + Hz * R * HzT;
+                    Hv * Pcopy * HvT + Hz * R * HzT;
 
                 //Vehicle to feature cross-covariance
-                P.block( feature.pos, 0, nxf, nxv ) = Hv * P.topLeftCorner(nxv, nxv );
+                Pcopy = P.topLeftCorner( nxv, nxv );
+                P.block( feature.pos, 0, nxf, nxv ) = Hv * Pcopy;
                 Eigen::Matrix<float, nxf, nxv> tempP = P.block( feature.pos, 0, nxf, nxv );
                 P.block( 0, feature.pos, nxv, nxf ) = tempP.transpose();
 
@@ -436,7 +468,8 @@ void SLAM( MapType &featureMap, Eigen::Matrix<float, Eigen::Dynamic,Eigen::Dynam
                 auto stop = std::prev(featureMap.end() );
                 Eigen::Matrix<float, nxf, nxf> tempPP;
                 for( auto it = start; it != stop; ++it ) {
-                    P.block( feature.pos, (*it).pos, nxf, nxf ) = Hv * P.block( 0, (*it).pos, nxv, nxf );
+                    auto Pcopy1 = P.block( 0, (*it).pos, nxv, nxf );
+                    P.block( feature.pos, (*it).pos, nxf, nxf ) = Hv * Pcopy1;
                     tempPP = P.block( feature.pos, (*it).pos, nxf, nxf );
                     P.block( (*it).pos, feature.pos, nxf, nxf ) = tempPP.transpose();
                 }

@@ -135,7 +135,9 @@ void syncThread() {
                 if (queueSLAM.push(packet) == false) {
                     std::cout << color_fmt_green << "syncThread:: Error!::" << "SLAM queue full!" << color_fmt_reset
                               << std::endl;
-                    abort();
+                    exit_flag = 1;
+                    quitSync = true;
+                    break;
                 }
             }
             //std::cout << color_fmt_green << "syncThread:: imu sync" << color_fmt_reset << std::endl;
@@ -160,7 +162,9 @@ void syncThread() {
                 if (queueSLAM.push(packet) == false) {
                     std::cout << color_fmt_green << "syncThread:: Error!::" << "SLAM queue full!" << color_fmt_reset
                               << std::endl;
-                    abort();
+                    exit_flag = 1;
+                    quitSync = true;
+                    break;
                 }
             }
             if (!LOG_SLAM_VIDEO) {
@@ -269,6 +273,25 @@ void syncThread() {
 
     int N_imu = log_imu.size() - 2;
     int N_feature = log_feature.size() - 2;
+    int N_slam = log_slam.size() - 2;
+
+    float* heading = new float[N_slam];
+    memset(heading, 0, N_slam*4);
+
+    float* roll = new float[N_slam];
+    memset(roll, 0, N_slam*4);
+
+    float* pitch = new float[N_slam];
+    memset(pitch, 0, N_slam*4);
+
+    float* bw = new float[N_slam*3];
+    memset(bw, 0, N_slam*3*4);
+
+    float* sw = new float[N_slam*3];
+    memset(sw, 0, N_slam*3*4);
+
+    float* mw = new float[N_slam*6];
+    memset(mw, 0, N_slam*6*4);
 
     float* vx = new float[N_feature*200];
     memset(vx, 0, N_feature*200*4);
@@ -289,6 +312,27 @@ void syncThread() {
     memset(dthe, 0, N_imu*3*4);
     float* adc = new float[N_imu*3];
     memset(adc, 0, N_imu*3*4);
+
+    for (int k = 0; k < N_slam; k++) {
+        heading[k] = log_slam[k].heading;
+        roll[k] = log_slam[k].roll;
+        pitch[k] = log_slam[k].pitch;
+
+        bw[k * 3 + 0] = log_slam[k].bwx;
+        bw[k * 3 + 1] = log_slam[k].bwy;
+        bw[k * 3 + 2] = log_slam[k].bwz;
+
+        sw[k * 3 + 0] = log_slam[k].swx;
+        sw[k * 3 + 1] = log_slam[k].swy;
+        sw[k * 3 + 2] = log_slam[k].swz;
+
+        mw[k * 6 + 0] = log_slam[k].mwxy;
+        mw[k * 6 + 1] = log_slam[k].mwxz;
+        mw[k * 6 + 2] = log_slam[k].mwyx;
+        mw[k * 6 + 3] = log_slam[k].mwyz;
+        mw[k * 6 + 4] = log_slam[k].mwzx;
+        mw[k * 6 + 5] = log_slam[k].mwzy;
+    }
 
     for(int k = 0; k < N_feature; k++) {
         for (unsigned int g = 0; g < log_feature[k].points.size(); g++) {
@@ -316,9 +360,27 @@ void syncThread() {
     file_id = H5Fcreate("log.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     hsize_t dims[2];
+
+    dims[0] = N_slam;
+    dims[1] = 1;
+    dataspace_Nx1_id = H5Screate_simple(1, dims, NULL);
+    append_dataset("/heading", file_id, dataspace_Nx1_id, (float*)heading);
+    append_dataset("/roll", file_id, dataspace_Nx1_id, (float*)roll);
+    append_dataset("/pitch", file_id, dataspace_Nx1_id, (float*)pitch);
+
+    dims[0] = N_slam;
+    dims[1] = 3;
+    dataspace_Nx1_id = H5Screate_simple(2, dims, NULL);
+    append_dataset("/bw", file_id, dataspace_Nx1_id, (float*)bw);
+    append_dataset("/sw", file_id, dataspace_Nx1_id, (float*)sw);
+
+    dims[0] = N_slam;
+    dims[1] = 6;
+    dataspace_Nx1_id = H5Screate_simple(2, dims, NULL);
+    append_dataset("/mw", file_id, dataspace_Nx1_id, (float*)mw);
+
     dims[0] = N_feature;
     dims[1] = 200;
-
     dataspace_Nx200_id = H5Screate_simple(2, dims, NULL);
     append_dataset("/feature_coord_x", file_id, dataspace_Nx200_id, (float*)vx);
     append_dataset("/feature_coord_y", file_id, dataspace_Nx200_id, (float*)vy);

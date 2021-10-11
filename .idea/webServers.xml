@@ -3,9 +3,9 @@
   <component name="WebServers">
     <option name="servers">
       <webServer id="f1a7ef24-90ba-45c4-b4d8-c39cf91e8dd6" name="JetsonNX">
-        <fileTransfer rootFolder="/home/step305" accessType="SFTP" host="192.168.0.26" port="22" sshConfigId="9b25edec-65e3-433c-9e50-9d952438dc6e" sshConfig="Jetson NX">
+        <fileTransfer rootFolder="/home/step305" accessType="SFTP" host="192.168.0.27" port="22" sshConfigId="6e2ceb24-3546-449a-aa56-dc159058469b" sshConfig="Jetson NX">
           <advancedOptions>
-            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
           </advancedOptions>
         </fileTransfer>
       </webServer>

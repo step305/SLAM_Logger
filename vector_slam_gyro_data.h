@@ -10,6 +10,7 @@
 #include "syncThread.h"
 #include "matrix.h"
 #include <opencv2/core/core.hpp>
+#include "utils.h"
 
 #define min_match                   (int)15
 #define max_match                   (int)30
@@ -17,9 +18,10 @@
 #define excluded_band               10.0f
 #define vector_closeness_threshold  0.1f
 #define hamming_norm_threshold      (int)30
-#define meas_noise                  (float)3e-2
+#define meas_noise                  (float)3e-3
 #define obs_thr                     0.2f
 #define max_map                     200
+#define HISTORY_MAP_LEN             5
 
 typedef struct {
     Eigen::Matrix<float,3,1> en; //unit vector in navigation frame
@@ -29,6 +31,7 @@ typedef struct {
     int32_t des[8]; //ORB descriptor
     int pos; //feature starting position in state vector
     bool obs; //observed flag
+    long long last_observed; // last time observation
     bool mat; //matched flag
     bool vis; //visited flag
     int cnt_obs;

@@ -71,7 +71,8 @@ int cameraStreamThread() {
     if( !cap.isOpened( ) )
     {
         std::cout << color_fmt_red << "cameraThread:: Error:: Failed to open the camera!" << color_fmt_reset << std::endl;
-        abort();
+        exit_flag = 1;
+        quitCamera = true;
     }
 
     std::cout << color_fmt_red << "cameraThread:: camera started." << color_fmt_reset << std::endl;
@@ -110,12 +111,13 @@ int cameraStreamThread() {
         }
         long long unsigned frame_ts = get_us();
 
-        if (skip_frames < 3) {
+        if (skip_frames < FRAMES_TO_SKIP) {
             skip_frames++;
             continue;
         } else {
             skip_frames = 0;
         }
+        cameraStarted = true;
 
         if (fps_cnt == FPS_MAX_CNT) {
             t1 = get_us();
@@ -206,7 +208,9 @@ int cameraStreamThread() {
         CAMMessageStruct msg = {frame, descriptors, undist_points, frame_ts};
         if (queueCamera.push(msg) == false) {
             std::cout << color_fmt_red << "cameraThread:: Error!::" << "Queue full!" << color_fmt_reset << std::endl;
-            abort();
+            exit_flag = 1;
+            quitCamera = true;
+            break;
         }
     }
 

@@ -170,9 +170,13 @@ void serialStreamThread(){
                 msg.adc[1] = serialParser->packet.adc[1];
                 msg.adc[2] = serialParser->packet.adc[2];
                 //std::cout << "serialThread:: Got message: {" << std::scientific << std::setprecision( 2 ) << msg.dthe[0] << "; " << msg.dthe[1] << "; " << msg.dthe[2]  << "}" << std::endl;
-                if (queueSerial.push(msg) == false) {
-                    std::cout << "serialThread:: Error!::" << "Queue full!" << std::endl;
-                    abort();
+                if (cameraStarted) {
+                    if (queueSerial.push(msg) == false) {
+                        std::cout << "serialThread:: Error!::" << "Queue full!" << std::endl;
+                        exit_flag = 1;
+                        quitSerial = true;
+                        break;
+                    }
                 }
                 packets_cnt++;
             }

@@ -24,6 +24,7 @@
 #include "CircularQueue.h"
 #include <iomanip>
 #include "utils.h"
+#include <signal.h>
 
 #define MAX_BUFFER_LEN  1024
 #define DLE             0x10
@@ -55,9 +56,11 @@ enum ParserStates {
     WAIT_DLE2
 };
 
-const int serial_queue_len = 128;
+const int serial_queue_len = 512;
 
 extern std::atomic<bool> quitSerial;
+extern std::atomic<bool> cameraStarted;
+extern volatile sig_atomic_t exit_flag;
 extern circ_queue::CircularFifo <IMUMessageStruct,serial_queue_len> queueSerial;
 
 class UARTParser {

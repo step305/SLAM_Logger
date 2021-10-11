@@ -18,6 +18,7 @@ std::atomic<bool> quitSerial;
 std::atomic<bool> quitCamera;
 std::atomic<bool> quitSync;
 std::atomic<bool> quitSLAM;
+std::atomic<bool> cameraStarted;
 
 circ_queue::CircularFifo <IMUMessageStruct,serial_queue_len> queueSerial(false);
 circ_queue::CircularFifo <CAMMessageStruct,camera_queue_len> queueCamera(false);
@@ -25,6 +26,7 @@ circ_queue::CircularFifo <SyncPacket,slam_queue_len> queueSLAM(false);
 circ_queue::CircularFifo <SLAMLogMessageStruct,slam_queue_len> queueLogSLAM(false);
 
 void exit_catch(int sig) {
+    std::cout << "SLAM-Logger:: User stop requested!" << std::endl;
     exit_flag = 1;
 }
 
@@ -34,6 +36,7 @@ int main() {
     sigemptyset(&sigIntHandler.sa_mask);
     sigIntHandler.sa_flags = 0;
     sigaction(SIGINT, &sigIntHandler, NULL);
+    cameraStarted = false;
 
     std::thread slam_thread( SLAMThread );
     std::thread sync_thread( syncThread );

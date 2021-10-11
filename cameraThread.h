@@ -35,6 +35,7 @@
 
 #include "utils.h"
 #include "thread"
+#include <signal.h>
 
 typedef struct {
     //cv::Mat frame;
@@ -45,9 +46,12 @@ typedef struct {
 } CAMMessageStruct;
 
 #define camera_queue_len 32
-#define FPS 15
+#define FPS 10 // = 60 / (FRAMES_TO_SKIP+1)
+#define FRAMES_TO_SKIP 5
 
 extern std::atomic<bool> quitCamera;
+extern std::atomic<bool> cameraStarted;
+extern volatile sig_atomic_t exit_flag;
 extern circ_queue::CircularFifo <CAMMessageStruct,camera_queue_len> queueCamera;
 
 int cameraStreamThread();

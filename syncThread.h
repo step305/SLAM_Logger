@@ -14,6 +14,7 @@
 #include <chrono>
 #include "hdf5.h"
 #include <opencv2/core/core.hpp>
+#include <signal.h>
 
 #define slam_queue_len      300
 #define LOG_SLAM_VIDEO      true
@@ -67,6 +68,7 @@ typedef struct {
 } SLAMLogMessageStruct;
 
 extern std::atomic<bool> quitSync;
+extern volatile sig_atomic_t exit_flag;
 extern circ_queue::CircularFifo <SyncPacket,slam_queue_len> queueSLAM;
 extern circ_queue::CircularFifo <SLAMLogMessageStruct,slam_queue_len> queueLogSLAM;
 

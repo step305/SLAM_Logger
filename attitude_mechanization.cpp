@@ -26,8 +26,8 @@ void attitude_mechanization( float q[4], float dThe[3], const float dt,
 
     // Sensor error model correction
     E << sw(0) + 1.0f, mw(0), mw(1),
-        mw(2), sw(1) + 1.0f, mw(3),
-        mw(4), mw(5), sw(2) + 1.0f;
+            mw(2), sw(1) + 1.0f, mw(3),
+            mw(4), mw(5), sw(2) + 1.0f;
 
     dthe = E * (dthe + bw * dt);
 

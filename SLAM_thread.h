@@ -10,8 +10,10 @@
 #include "utils.h"
 #include "Eigen/Dense"
 #include "transformation.h"
+#include <signal.h>
 
 extern std::atomic<bool> quitSLAM;
+extern volatile sig_atomic_t exit_flag;
 
 int SLAMThread();
 
