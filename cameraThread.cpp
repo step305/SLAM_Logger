@@ -144,9 +144,21 @@ int cameraStreamThread() {
 
         std::vector<cv::KeyPoint> keypoints;
         cv::Mat descriptors;
+        std::vector<cv::Point2f> dist_points;
+        std::vector<cv::Point2f> undist_points;
 
         //orb_detector -> detectAndComputeAsync(gpu_frame2, cv::cuda::GpuMat(), d_keypoints, d_descriptors);
         orb_detector ->detectAsync(gpu_frame2, d_keypoints, cv::cuda::GpuMat());
+        if (d_keypoints.empty()) {
+            CAMMessageStruct msg = {frame, descriptors, undist_points, frame_ts};
+            if (queueCamera.push(msg) == false) {
+                std::cout << color_fmt_red << "cameraThread:: Error!::" << "Queue full!" << color_fmt_reset << std::endl;
+                exit_flag = 1;
+                quitCamera = true;
+                break;
+            }
+            continue;
+        }
         orb_detector -> convert(d_keypoints, keypoints);
 
         //d_descriptors.download(descriptors);
@@ -179,8 +191,7 @@ int cameraStreamThread() {
 
         //d_descriptors.download(descriptors);
 
-        std::vector<cv::Point2f> dist_points;
-        std::vector<cv::Point2f> undist_points;
+
 
         cv::KeyPoint::convert(keypoints_srt, dist_points);
         cv::undistortPoints(dist_points, undist_points, camMtx, distCoefs);

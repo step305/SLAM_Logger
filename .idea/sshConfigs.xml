@@ -2,7 +2,7 @@
 <project version="4">
   <component name="SshConfigs">
     <configs>
-      <sshConfig authType="PASSWORD" host="192.168.0.26" id="9b25edec-65e3-433c-9e50-9d952438dc6e" port="22" customName="Jetson NX" nameFormat="CUSTOM" username="step305">
+      <sshConfig authType="PASSWORD" connectionConfig="{&quot;serverAliveInterval&quot;:300}" host="192.168.0.26" id="9b25edec-65e3-433c-9e50-9d952438dc6e" port="22" customName="Jetson NX" nameFormat="CUSTOM" username="step305">
         <option name="customName" value="Jetson NX" />
       </sshConfig>
     </configs>

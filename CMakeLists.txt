@@ -4,7 +4,23 @@ project(SLAM_Logger)
 set(CMAKE_CXX_STANDARD 11)
 cmake_minimum_required(VERSION 3.10)
 
-add_executable(SLAM_Logger main.cpp serialStream.cpp cameraThread.cpp utils.cpp syncThread.cpp matrix.cpp transformation.cpp attitude_mechanization.cpp vector_slam_gyro_data.cpp vector_slam_gyro_data.h SLAM_thread.cpp SLAM_thread.h)
+add_executable(
+        SLAM_Logger
+        main.cpp
+        serialStream.cpp
+        cameraThread.cpp
+        utils.cpp
+        syncThread.cpp
+        matrix.cpp
+        transformation.cpp
+        attitude_mechanization.cpp
+        vector_slam_gyro_data.cpp
+        vector_slam_gyro_data.h
+        SLAM_thread.cpp
+        SLAM_thread.h
+        fifo_thread.cpp
+        fifo_thread.h
+        )
 
 find_package(OpenCV REQUIRED)
 find_package (Threads REQUIRED)

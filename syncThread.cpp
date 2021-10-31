@@ -116,7 +116,12 @@ void syncThread() {
 
     std::cout << std::endl << color_fmt_green << "syncThread:: Started!" << color_fmt_reset << std::endl;
     while (!quitSync) {
+        CAMMessageStruct feature_msg;
         if (queueSerial.pop(imu_msg)) {
+            if (sync_imu == false) {
+                while (queueCamera.pop(feature_msg));
+                queueCamera.push(feature_msg);
+            }
             sync_imu = true;
             if (fps_imu_cnt == FPS_MAX_CNT) {
                 t1_imu = get_us();
@@ -142,8 +147,10 @@ void syncThread() {
             }
             //std::cout << color_fmt_green << "syncThread:: imu sync" << color_fmt_reset << std::endl;
         };
-        CAMMessageStruct feature_msg;
         if (queueCamera.pop(feature_msg)) {
+            if (sync_camera == false) {
+                while (queueSerial.pop(imu_msg));
+            }
             sync_camera = true;
             if (fps_orb_cnt == FPS_MAX_CNT) {
                 t1_orb = get_us();
@@ -284,6 +291,9 @@ void syncThread() {
     float* pitch = new float[N_slam];
     memset(pitch, 0, N_slam*4);
 
+    float* t_slam = new float[N_slam];
+    memset(t_slam, 0, N_slam*4);
+
     float* bw = new float[N_slam*3];
     memset(bw, 0, N_slam*3*4);
 
@@ -332,6 +342,8 @@ void syncThread() {
         mw[k * 6 + 3] = log_slam[k].mwyz;
         mw[k * 6 + 4] = log_slam[k].mwzx;
         mw[k * 6 + 5] = log_slam[k].mwzy;
+
+        t_slam[k] = (float)(log_slam[k].ts - t0)/1e6;
     }
 
     for(int k = 0; k < N_feature; k++) {
@@ -367,6 +379,7 @@ void syncThread() {
     append_dataset("/heading", file_id, dataspace_Nx1_id, (float*)heading);
     append_dataset("/roll", file_id, dataspace_Nx1_id, (float*)roll);
     append_dataset("/pitch", file_id, dataspace_Nx1_id, (float*)pitch);
+    append_dataset("/t_slam", file_id, dataspace_Nx1_id, (float*)t_slam);
 
     dims[0] = N_slam;
     dims[1] = 3;

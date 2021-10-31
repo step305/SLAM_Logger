@@ -4,6 +4,14 @@
 
 #include "SLAM_thread.h"
 
+float mean_arr(float* arr, int len) {
+    float sum  = 0.0f;
+    for(int i = 0; i< len; i++) {
+        sum += arr[i];
+    }
+    return sum/(float)len;
+}
+
 int SLAMThread() {
     CamStruct cam;
 
@@ -26,6 +34,11 @@ int SLAMThread() {
     float heading;
     float pitch;
     float roll;
+    float bias_x[100] = {0.0f,};
+    float bias_y[100] = {0.0f,};
+    float bias_z[100] = {0.0f,};
+    int bias_hist_i = 0;
+    int bias_hist_max = 30;
 
     long long unsigned t0_slam, t1_slam;
     int fps_slam_cnt = 0;
@@ -60,6 +73,9 @@ int SLAMThread() {
     unsigned long long t0, t1;
     t0 = get_us();
 
+    unsigned long long t0_watchdog, t1_watchdog;
+    t0_watchdog = get_us();
+
     std::cout << color_fmt_red << "SLAMThread:: Started!" << color_fmt_reset << std::endl;
     while (!quitSLAM) {
         SyncPacket packet = SyncPacket();
@@ -85,6 +101,27 @@ int SLAMThread() {
             packet.dangle[2] = - temp * 2.0f;
 
             SLAM( featureMap, P, q, bw, sw, mw, packet, dt, cam, erased );
+
+            if (packet.sync) {
+                if (packet.descriptors.empty() != true) {
+                    t0_watchdog = get_us();
+                    bias_x[bias_hist_i] = bw[0];
+                    bias_y[bias_hist_i] = bw[1];
+                    bias_z[bias_hist_i] = bw[2];
+                }
+            }
+
+            if (bias_hist_i < (bias_hist_max-1)) {
+                bias_hist_i++;
+            } else {
+                bias_hist_i = 0;
+            }
+            t1_watchdog = get_us();
+            if ((t1_watchdog - t0_watchdog) > 1000000) {
+                bw[0] = mean_arr(bias_x, bias_hist_max);
+                bw[1] = mean_arr(bias_y, bias_hist_max);
+                bw[2] = mean_arr(bias_z, bias_hist_max);
+            }
 
             if (packet.sync) {
                 t1 = get_us();
@@ -130,7 +167,7 @@ int SLAMThread() {
                       << color_fmt_reset << std::endl;
             }
 
-            SLAMLogMessageStruct msgREC = { get_us(),
+            SLAMLogMessageStruct msgREC = { packet.ts,
                                             matched_points, all_points, erased,
                                             packet.sync,
                                             heading, pitch, roll,
@@ -139,10 +176,13 @@ int SLAMThread() {
                                             mw[0], mw[1], mw[2], mw[3], mw[4], mw[5]};
 
             if (queueLogSLAM.push(msgREC) == false) {
-                std::cout << color_fmt_red << "SLAMThread:: Error!::" << "Queue full!" << color_fmt_reset << std::endl;
+                std::cout << color_fmt_red << "SLAMThread:: Error!::" << "Log Queue full!" << color_fmt_reset << std::endl;
                 exit_flag = 1;
                 quitSLAM = true;
                 break;
+            }
+            if (queueFIFOSLAM.push(msgREC) == false) {
+                std::cout << color_fmt_red << "SLAMThread:: Warning!::" << "FIFO Queue full! Skipped data!" << color_fmt_reset << std::endl;
             }
         } // if packet
     } // while

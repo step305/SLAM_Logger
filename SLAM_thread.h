@@ -11,6 +11,7 @@
 #include "Eigen/Dense"
 #include "transformation.h"
 #include <signal.h>
+#include "fifo_thread.h"
 
 extern std::atomic<bool> quitSLAM;
 extern volatile sig_atomic_t exit_flag;

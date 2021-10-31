@@ -2,6 +2,13 @@
 <project version="4">
   <component name="PublishConfigData" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
+      <paths name="Jetson NX (5a8ec98c-8c41-4431-8268-4941b5490287)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/SLAM_Logger" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="Jetson NX (ac1df09f-72b7-4673-879e-858563c49a63)">
         <serverdata>
           <mappings>
@@ -34,10 +41,24 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="Remote Host (a35a6999-aa3a-4694-b1ce-1e701eb0e7aa)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="Remote Host (ac1df2f1-745a-47e0-9c99-920286f702ee)">
         <serverdata>
           <mappings>
             <mapping deploy="/tmp/SLAM_Logger" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="UbuntuDevMachine (14e24ff1-8ca6-4d81-b03b-21415b51142c)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

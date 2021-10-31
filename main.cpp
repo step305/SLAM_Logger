@@ -11,6 +11,7 @@
 #include "cameraThread.h"
 #include "syncThread.h"
 #include "SLAM_thread.h"
+#include "fifo_thread.h"
 
 volatile sig_atomic_t exit_flag = 0;
 
@@ -18,12 +19,14 @@ std::atomic<bool> quitSerial;
 std::atomic<bool> quitCamera;
 std::atomic<bool> quitSync;
 std::atomic<bool> quitSLAM;
+std::atomic<bool> quitFIFO;
 std::atomic<bool> cameraStarted;
 
 circ_queue::CircularFifo <IMUMessageStruct,serial_queue_len> queueSerial(false);
 circ_queue::CircularFifo <CAMMessageStruct,camera_queue_len> queueCamera(false);
 circ_queue::CircularFifo <SyncPacket,slam_queue_len> queueSLAM(false);
 circ_queue::CircularFifo <SLAMLogMessageStruct,slam_queue_len> queueLogSLAM(false);
+circ_queue::CircularFifo <SLAMLogMessageStruct,fifo_queue_len> queueFIFOSLAM(false);
 
 void exit_catch(int sig) {
     std::cout << "SLAM-Logger:: User stop requested!" << std::endl;
@@ -39,6 +42,7 @@ int main() {
     cameraStarted = false;
 
     std::thread slam_thread( SLAMThread );
+    std::thread fifo_thread( fifoThread );
     std::thread sync_thread( syncThread );
     std::thread serial_thread( serialStreamThread );
     std::thread camera_thread( cameraStreamThread );
@@ -54,6 +58,7 @@ int main() {
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             quitSync = true;
             quitSLAM = true;
+            quitFIFO = true;
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
             quit = true;
         }
@@ -67,6 +72,8 @@ int main() {
         sync_thread.join();
     if (slam_thread.joinable())
         slam_thread.join();
+    if (fifo_thread.joinable())
+        fifo_thread.join();
     std::cout << std::endl << "SLAM-Logger:: Done!" << std::endl;
     return 0;
 }
