@@ -20,7 +20,7 @@ add_executable(
         SLAM_thread.h
         fifo_thread.cpp
         fifo_thread.h
-        )
+        RealsenseD455.cpp RealsenseD455.h)
 
 find_package(OpenCV REQUIRED)
 find_package (Threads REQUIRED)

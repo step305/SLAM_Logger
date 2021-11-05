@@ -31,7 +31,8 @@
 #include <vector>
 #include "CircularQueue.h"
 
-#include <librealsense2/rs.hpp>
+//#include <librealsense2/rs.hpp>
+#include "RealsenseD455.h"
 
 #include "utils.h"
 #include "thread"
@@ -46,14 +47,14 @@ typedef struct {
 } CAMMessageStruct;
 
 #define camera_queue_len 32
-#define FPS 10 // = 60 / (FRAMES_TO_SKIP+1)
-#define FRAMES_TO_SKIP 5
+//#define FPS 10 // = 60 / (FRAMES_TO_SKIP+1)
+//#define FRAMES_TO_SKIP 5
 
 extern std::atomic<bool> quitCamera;
 extern std::atomic<bool> cameraStarted;
 extern volatile sig_atomic_t exit_flag;
 extern circ_queue::CircularFifo <CAMMessageStruct,camera_queue_len> queueCamera;
 
-int cameraStreamThread();
+int ORBdetectorStreamThread();
 
 #endif //SLAM_LOGGER_CAMERATHREAD_H

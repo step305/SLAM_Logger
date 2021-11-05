@@ -99,6 +99,7 @@ int SLAMThread() {
             packet.dangle[0] = - packet.dangle[1] * 2.0f;
             packet.dangle[1] = packet.dangle[2] * 2.0f;
             packet.dangle[2] = - temp * 2.0f;
+            float  crh_adc = packet.adc[0];
 
             SLAM( featureMap, P, q, bw, sw, mw, packet, dt, cam, erased );
 
@@ -173,7 +174,8 @@ int SLAMThread() {
                                             heading, pitch, roll,
                                             bw[0], bw[1], bw[2],
                                             sw[0], sw[1], sw[2],
-                                            mw[0], mw[1], mw[2], mw[3], mw[4], mw[5]};
+                                            mw[0], mw[1], mw[2], mw[3], mw[4], mw[5],
+                                            crh_adc};
 
             if (queueLogSLAM.push(msgREC) == false) {
                 std::cout << color_fmt_red << "SLAMThread:: Error!::" << "Log Queue full!" << color_fmt_reset << std::endl;

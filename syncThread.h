@@ -8,13 +8,14 @@
 #include "thread"
 #include "CircularQueue.h"
 #include "cameraThread.h"
-#include "serialStream.h"
+//#include "serialStream.h"
 #include "utils.h"
 #include <stdint.h>
 #include <chrono>
 #include "hdf5.h"
 #include <opencv2/core/core.hpp>
 #include <signal.h>
+#include "RealsenseD455.h"
 
 #define slam_queue_len      300
 #define LOG_SLAM_VIDEO      true
@@ -65,6 +66,7 @@ typedef struct {
     float mwyz;
     float mwzx;
     float mwzy;
+    float crh_adc;
 } SLAMLogMessageStruct;
 
 extern std::atomic<bool> quitSync;

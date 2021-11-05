@@ -26,56 +26,49 @@ bool response_comparator(const cv::KeyPoint& p1, const cv::KeyPoint& p2)
     return p1.response > p2.response;
 }
 
-int cameraStreamThread() {
+int ORBdetectorStreamThread() {
     long long unsigned t0, t1;
     int fps_cnt;
     float fps;
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    std::cout << color_fmt_red << "cameraThread:: Started!" << color_fmt_reset << std::endl;
+    //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::cout << color_fmt_red << "ORBThread:: Started!" << color_fmt_reset << std::endl;
 
-    rs2::pipeline pipe;
-    rs2::pipeline_profile selection = pipe.start();
-    rs2::device selected_device = selection.get_device();
-    auto depth_sensor = selected_device.first<rs2::depth_sensor>();
+    //rs2::pipeline pipe;
+    //rs2::pipeline_profile selection = pipe.start();
+    //rs2::device selected_device = selection.get_device();
+    //auto depth_sensor = selected_device.first<rs2::depth_sensor>();
 
-    if (depth_sensor.supports(RS2_OPTION_EMITTER_ENABLED))
-    {
-        //depth_sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 1.f); // Enable emitter
-        depth_sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0.f); // Disable emitter
-    }
-    if (depth_sensor.supports(RS2_OPTION_LASER_POWER))
-    {
-        // Query min and max values:
-        //auto range = depth_sensor.get_option_range(RS2_OPTION_LASER_POWER);
-        //depth_sensor.set_option(RS2_OPTION_LASER_POWER, range.max); // Set max power
-        depth_sensor.set_option(RS2_OPTION_LASER_POWER, 0.f); // Disable laser
-    }
-    pipe.stop();
+    //if (depth_sensor.supports(RS2_OPTION_EMITTER_ENABLED))
+    //{
+    //    //depth_sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 1.f); // Enable emitter
+    //    depth_sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0.f); // Disable emitter
+    //}
+    //if (depth_sensor.supports(RS2_OPTION_LASER_POWER))
+    //{
+    //    // Query min and max values:
+    //    //auto range = depth_sensor.get_option_range(RS2_OPTION_LASER_POWER);
+    //    //depth_sensor.set_option(RS2_OPTION_LASER_POWER, range.max); // Set max power
+    //    depth_sensor.set_option(RS2_OPTION_LASER_POWER, 0.f); // Disable laser
+    //}
+    //pipe.stop();
 
-    std::cout << color_fmt_red << "cameraThread:: Realsense camera configured. Laser set to off." << color_fmt_reset << std::endl;
+    //std::cout << color_fmt_red << "cameraThread:: Realsense camera configured. Laser set to off." << color_fmt_reset << std::endl;
 
     cv::Mat empty_frame;
     //Setup the Camera
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    cv::VideoCapture cap("v4l2src device=/dev/video1 do-timestamp=true ! video/x-raw, width=640, height=480, "
-                         "framerate=60/1, format=GRAY8  ! videoconvert ! video/x-raw, format=GRAY8 ! appsink");
+    //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    //cv::VideoCapture cap("v4l2src device=/dev/video1 do-timestamp=true ! video/x-raw, width=640, height=480, "
+    //                     "framerate=60/1, format=GRAY8  ! videoconvert ! video/x-raw, format=GRAY8 ! appsink");
 
-    //std::system("v4l2-ctl --set-ctrl exposure_auto=1 -d 2");
-    //std::system("v4l2-ctl --set-ctrl exposure_absolute=100 -d 2");
-    //std::system("v4l2-ctl --set-ctrl gain=120 -d 2");
+    //if( !cap.isOpened( ) )
+    //{
+    //    std::cout << color_fmt_red << "cameraThread:: Error:: Failed to open the camera!" << color_fmt_reset << std::endl;
+    //    exit_flag = 1;
+    //    quitCamera = true;
+    //}
 
-    //cv::VideoCapture cap("v4l2src device=/dev/video2 do-timestamp=true ! video/x-raw, width=640, height=480, "
-    //                     "framerate=15/1, format=YUY2  ! videoconvert ! video/x-raw, format=GRAY8 ! appsink");
-
-    if( !cap.isOpened( ) )
-    {
-        std::cout << color_fmt_red << "cameraThread:: Error:: Failed to open the camera!" << color_fmt_reset << std::endl;
-        exit_flag = 1;
-        quitCamera = true;
-    }
-
-    std::cout << color_fmt_red << "cameraThread:: camera started." << color_fmt_reset << std::endl;
+    std::cout << color_fmt_red << "ORBThread:: ORB detector thread started." << color_fmt_reset << std::endl;
 
     //cv::VideoWriter video("video_slam.avi", cv::VideoWriter::fourcc('M','J','P','G'), FPS, cv::Size(640, 480), true);
     /*cv::VideoWriter video("appsrc ! video/x-raw, format=BGR ! queue ! videoconvert ! video/x-raw,format=BGRx ! "
@@ -86,7 +79,7 @@ int cameraStreamThread() {
         abort();
     }*/
 
-    std::cout << color_fmt_red << "cameraThread:: Video writer started." << color_fmt_reset << std::endl;
+    //std::cout << color_fmt_red << "cameraThread:: Video writer started." << color_fmt_reset << std::endl;
 
     cv::Ptr<cv::cuda::ORB> orb_detector = cv::cuda::ORB::create(npoints);
     cv::Ptr<cv::ORB> orb_detector_cpu = cv::ORB::create(npoints);
@@ -103,13 +96,18 @@ int cameraStreamThread() {
     int skip_frames = 0;
 
     while (!quitCamera) {
+        ImageMessageStruct image_msg;
+        if (!queueImages.pop(image_msg)) {
+            continue;
+        }
         cv::Mat frame(640, 480, cv::DataType<float>::type);
-        cap >> frame;
+        //cap >> frame;
+        cap = image_msg.frame;
+        long long unsigned frame_ts = image_msg.ts;
 
         if (frame.empty()){
             continue;
         }
-        long long unsigned frame_ts = get_us();
 
         if (skip_frames < FRAMES_TO_SKIP) {
             skip_frames++;
@@ -124,7 +122,7 @@ int cameraStreamThread() {
             fps = (float)fps_cnt/(float)(t1 - t0) * 1.0e6f;
             t0 = get_us();
             fps_cnt = 0;
-            std::cout << color_fmt_red << "cameraThread:: FPS = " << std::fixed << std::setprecision(2) << fps << "fps" << color_fmt_reset << std::endl;
+            std::cout << color_fmt_red << "ORBThread:: FPS = " << std::fixed << std::setprecision(2) << fps << "fps" << color_fmt_reset << std::endl;
         } else {
             fps_cnt++;
         }
@@ -152,7 +150,7 @@ int cameraStreamThread() {
         if (d_keypoints.empty()) {
             CAMMessageStruct msg = {frame, descriptors, undist_points, frame_ts};
             if (queueCamera.push(msg) == false) {
-                std::cout << color_fmt_red << "cameraThread:: Error!::" << "Queue full!" << color_fmt_reset << std::endl;
+                std::cout << color_fmt_red << "ORBThread:: Error!::" << "Queue full!" << color_fmt_reset << std::endl;
                 exit_flag = 1;
                 quitCamera = true;
                 break;
@@ -191,8 +189,6 @@ int cameraStreamThread() {
 
         //d_descriptors.download(descriptors);
 
-
-
         cv::KeyPoint::convert(keypoints_srt, dist_points);
         cv::undistortPoints(dist_points, undist_points, camMtx, distCoefs);
 
@@ -209,25 +205,24 @@ int cameraStreamThread() {
             img_cnt++;
             skip_cnt = 15;
             cv::imwrite(nam_img, frame);
-            std::cout << color_fmt_red << "cameraThread:: Save frame:: #" << img_cnt << color_fmt_reset << std::endl;
+            std::cout << color_fmt_red << "ORBThread:: Save frame:: #" << img_cnt << color_fmt_reset << std::endl;
         } else {
             skip_cnt--;
         }
 #endif
 
-
         CAMMessageStruct msg = {frame, descriptors, undist_points, frame_ts};
         if (queueCamera.push(msg) == false) {
-            std::cout << color_fmt_red << "cameraThread:: Error!::" << "Queue full!" << color_fmt_reset << std::endl;
+            std::cout << color_fmt_red << "ORBThread:: Error!::" << "Queue full!" << color_fmt_reset << std::endl;
             exit_flag = 1;
             quitCamera = true;
             break;
         }
     }
 
-    std::cout << color_fmt_red << "cameraThread:: " << frames_cnt << "total" << color_fmt_reset << std::endl;
+    std::cout << color_fmt_red << "ORBThread:: " << frames_cnt << "total" << color_fmt_reset << std::endl;
 
-    std::cout << color_fmt_red << "cameraThread:: Finished!" << color_fmt_reset << std::endl;
+    std::cout << color_fmt_red << "ORBThread:: Finished!" << color_fmt_reset << std::endl;
 
     return 0;
 }

@@ -51,6 +51,7 @@ void fifoThread() {
             sprintf(json, "%s\"pitch\": %0.12f, ", json, packet_slam.pitch);
             sprintf(json, "%s\"bw\": [%0.12f, %0.12f, %0.12f] }\n", json, packet_slam.bwx,
                     packet_slam.bwy, packet_slam.bwz);
+            sprintf(json, "%s\"crh\": %0.12f }\n", json, packet_slam.crh_adc);
 
             int s_write = fprintf(wfd, "%s", json);
             fflush(wfd);

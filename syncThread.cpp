@@ -7,7 +7,7 @@
 SyncPacket::SyncPacket() {
 };
 
-void SyncPacket::add_imu_data(std::array<float,3> dangle_vals,  std::array<float,3> adc_vals) {
+void SyncPacket::add_imu_data(std::array<float,3> dangle_vals, std::array<float,3> adc_vals) {
     SyncPacket::adc[0] = adc_vals[0];
     SyncPacket::adc[1] = adc_vals[1];
     SyncPacket::adc[2] = adc_vals[2];
@@ -60,7 +60,6 @@ void append_dataset(const char* dataset_name, hid_t file_id, hid_t space_id, flo
 }
 
 void syncThread() {
-    IMUMessageStruct imu_msg;
     bool sync_imu = false;
     bool sync_camera = false;
 
@@ -69,7 +68,6 @@ void syncThread() {
 
     std::vector<SyncPacket> log_imu, log_feature;
     SyncPacket packet = SyncPacket();
-
 
     long long unsigned t0 = get_us();
 
@@ -115,9 +113,45 @@ void syncThread() {
     std::cout << color_fmt_green << "syncThread:: Video writer started." << color_fmt_reset << std::endl;
 
     std::cout << std::endl << color_fmt_green << "syncThread:: Started!" << color_fmt_reset << std::endl;
+
+    //IMUMessageStruct crh_msg;
+    RealsenseIMUMessageStruct imu_msg;
+
     while (!quitSync) {
         CAMMessageStruct feature_msg;
-        if (queueSerial.pop(imu_msg)) {
+
+//        if (queueSerial.pop(crh_msg)) {
+//            if (sync_imu == false) {
+//                while (queueCamera.pop(feature_msg));
+//                queueCamera.push(feature_msg);
+//            }
+//            sync_imu = true;
+//            if (fps_imu_cnt == FPS_MAX_CNT) {
+//                t1_imu = get_us();
+//                fps_imu = (float)fps_imu_cnt/(float)(t1_imu - t0_imu)*1.0e6f;
+//                t0_imu = get_us();
+//                fps_imu_cnt = 0;
+//                std::cout << color_fmt_green << "syncThread:: IMU FPS = " << std::fixed << std::setprecision(2) << fps_imu << "fps" << color_fmt_reset << std::endl;
+//            } else {
+//                fps_imu_cnt++;
+//            };
+//            packet.add_imu_data(crh_msg.dthe, crh_msg.adc);
+//            packet.ts = crh_msg.ts;
+//            packet.sync = false;
+//            log_imu.push_back(packet);
+//            if (sync_camera) {
+//                if (queueSLAM.push(packet) == false) {
+//                    std::cout << color_fmt_green << "syncThread:: Error!::" << "SLAM queue full!" << color_fmt_reset
+//                              << std::endl;
+//                    exit_flag = 1;
+//                    quitSync = true;
+//                    break;
+//                }
+//            }
+//            //std::cout << color_fmt_green << "syncThread:: imu sync" << color_fmt_reset << std::endl;
+//        };
+
+        if (queueIMU.pop(imu_msg)) {
             if (sync_imu == false) {
                 while (queueCamera.pop(feature_msg));
                 queueCamera.push(feature_msg);
@@ -132,7 +166,7 @@ void syncThread() {
             } else {
                 fps_imu_cnt++;
             };
-            packet.add_imu_data(imu_msg.dthe, imu_msg.adc);
+            packet.add_imu_data(imu_msg.rate, imu_msg.adc);
             packet.ts = imu_msg.ts;
             packet.sync = false;
             log_imu.push_back(packet);
@@ -147,9 +181,10 @@ void syncThread() {
             }
             //std::cout << color_fmt_green << "syncThread:: imu sync" << color_fmt_reset << std::endl;
         };
+
         if (queueCamera.pop(feature_msg)) {
             if (sync_camera == false) {
-                while (queueSerial.pop(imu_msg));
+                while (queueSerial.pop(crh_msg));
             }
             sync_camera = true;
             if (fps_orb_cnt == FPS_MAX_CNT) {

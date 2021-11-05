@@ -12,6 +12,7 @@
 #include "syncThread.h"
 #include "SLAM_thread.h"
 #include "fifo_thread.h"
+#include "RealsenseD455.h"
 
 volatile sig_atomic_t exit_flag = 0;
 
@@ -21,12 +22,15 @@ std::atomic<bool> quitSync;
 std::atomic<bool> quitSLAM;
 std::atomic<bool> quitFIFO;
 std::atomic<bool> cameraStarted;
+std::atomic<bool> quitD455;
 
 circ_queue::CircularFifo <IMUMessageStruct,serial_queue_len> queueSerial(false);
 circ_queue::CircularFifo <CAMMessageStruct,camera_queue_len> queueCamera(false);
 circ_queue::CircularFifo <SyncPacket,slam_queue_len> queueSLAM(false);
 circ_queue::CircularFifo <SLAMLogMessageStruct,slam_queue_len> queueLogSLAM(false);
 circ_queue::CircularFifo <SLAMLogMessageStruct,fifo_queue_len> queueFIFOSLAM(false);
+circ_queue::CircularFifo <ImageMessageStruct,images_queue_len> queueImages;
+circ_queue::CircularFifo <RealsenseIMUMessageStruct,imu_queue_len> queueIMU;
 
 void exit_catch(int sig) {
     std::cout << "SLAM-Logger:: User stop requested!" << std::endl;
@@ -45,7 +49,9 @@ int main() {
     std::thread fifo_thread( fifoThread );
     std::thread sync_thread( syncThread );
     std::thread serial_thread( serialStreamThread );
-    std::thread camera_thread( cameraStreamThread );
+    std::thread slam_thread( SLAMThread );
+    std::thread orb_thread( ORBdetectorStreamThread );
+    std::thread realsense_thread( realsenseStreamThread );
     std::cout << "SLAM-Logger:: start!" << std::endl;
 
     bool quit = false;
@@ -54,6 +60,8 @@ int main() {
     while (!quit) {
         if (exit_flag) {
             quitSerial = true;
+            quitD455 = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             quitCamera = true;
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             quitSync = true;
@@ -66,8 +74,10 @@ int main() {
 
     if (serial_thread.joinable())
         serial_thread.join();
-    if (camera_thread.joinable())
-        camera_thread.join();
+    if (realsense_thread.joinable())
+        realsense_thread.join();
+    if (orb_thread.joinable())
+        orb_thread.join();
     if (sync_thread.joinable())
         sync_thread.join();
     if (slam_thread.joinable())
