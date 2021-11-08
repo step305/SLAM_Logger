@@ -29,8 +29,8 @@ circ_queue::CircularFifo <CAMMessageStruct,camera_queue_len> queueCamera(false);
 circ_queue::CircularFifo <SyncPacket,slam_queue_len> queueSLAM(false);
 circ_queue::CircularFifo <SLAMLogMessageStruct,slam_queue_len> queueLogSLAM(false);
 circ_queue::CircularFifo <SLAMLogMessageStruct,fifo_queue_len> queueFIFOSLAM(false);
-circ_queue::CircularFifo <ImageMessageStruct,images_queue_len> queueImages;
-circ_queue::CircularFifo <RealsenseIMUMessageStruct,imu_queue_len> queueIMU;
+circ_queue::CircularFifo <ImageMessageStruct,images_queue_len> queueImages(false);
+circ_queue::CircularFifo <RealsenseIMUMessageStruct,imu_queue_len> queueIMU(false);
 
 void exit_catch(int sig) {
     std::cout << "SLAM-Logger:: User stop requested!" << std::endl;
@@ -49,7 +49,6 @@ int main() {
     std::thread fifo_thread( fifoThread );
     std::thread sync_thread( syncThread );
     std::thread serial_thread( serialStreamThread );
-    std::thread slam_thread( SLAMThread );
     std::thread orb_thread( ORBdetectorStreamThread );
     std::thread realsense_thread( realsenseStreamThread );
     std::cout << "SLAM-Logger:: start!" << std::endl;

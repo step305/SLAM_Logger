@@ -23,7 +23,7 @@
       <paths name="JetsonNX">
         <serverdata>
           <mappings>
-            <mapping deploy="SLAM_Logger" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="SLAM_Logger_v2" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

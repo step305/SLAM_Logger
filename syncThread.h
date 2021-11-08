@@ -41,7 +41,7 @@ public:
     bool sync;
 
     SyncPacket();
-    void add_imu_data(std::array<float,3> dangle_vals,  std::array<float,3> adc_vals);
+    void add_imu_data(float dangle_vals[3],  float adc_vals[3]);
     void add_features_data(cv::Mat descriptors, std::vector<cv::Point2f> features);
 };
 

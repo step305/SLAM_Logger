@@ -102,19 +102,19 @@ int ORBdetectorStreamThread() {
         }
         cv::Mat frame(640, 480, cv::DataType<float>::type);
         //cap >> frame;
-        cap = image_msg.frame;
+        frame = image_msg.frame;
         long long unsigned frame_ts = image_msg.ts;
 
         if (frame.empty()){
             continue;
         }
 
-        if (skip_frames < FRAMES_TO_SKIP) {
-            skip_frames++;
-            continue;
-        } else {
-            skip_frames = 0;
-        }
+        //if (skip_frames < FRAMES_TO_SKIP) {
+        //    skip_frames++;
+        //    continue;
+        //} else {
+        //    skip_frames = 0;
+        //}
         cameraStarted = true;
 
         if (fps_cnt == FPS_MAX_CNT) {

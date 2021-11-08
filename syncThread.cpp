@@ -7,7 +7,7 @@
 SyncPacket::SyncPacket() {
 };
 
-void SyncPacket::add_imu_data(std::array<float,3> dangle_vals, std::array<float,3> adc_vals) {
+void SyncPacket::add_imu_data(float dangle_vals[3], float adc_vals[3]) {
     SyncPacket::adc[0] = adc_vals[0];
     SyncPacket::adc[1] = adc_vals[1];
     SyncPacket::adc[2] = adc_vals[2];
@@ -63,7 +63,7 @@ void syncThread() {
     bool sync_imu = false;
     bool sync_camera = false;
 
-    std::array<float,3> sync_imu_packet;
+    float sync_imu_packet[3];
     sync_imu_packet[0] = -999999.0f; sync_imu_packet[1] = -999999.0f; sync_imu_packet[2] = -999999.0f;
 
     std::vector<SyncPacket> log_imu, log_feature;
@@ -184,7 +184,7 @@ void syncThread() {
 
         if (queueCamera.pop(feature_msg)) {
             if (sync_camera == false) {
-                while (queueSerial.pop(crh_msg));
+                while (queueIMU.pop(imu_msg));
             }
             sync_camera = true;
             if (fps_orb_cnt == FPS_MAX_CNT) {

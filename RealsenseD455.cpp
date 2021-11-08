@@ -3,16 +3,18 @@
 //
 
 #include "RealsenseD455.h"
+#include "RealsenseUtils.h"
 
-int realsenseStreamThread() {
+int realsenseStreamThread() try {
 
     std::string serial;
-    if (!device_with_streams({ RS2_STREAM_GYRO  }, serial))
+    if (!device_with_streams({ RS2_STREAM_GYRO  }, serial)) {
         std::cout << color_fmt_blue << "realsenseThread:: Not found supported Realsense camera!" << color_fmt_reset << std::endl;
         exit_flag = 1;
         return EXIT_SUCCESS;
+    }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
     std::cout << color_fmt_blue << "realsenseThread:: Started!" << color_fmt_reset << std::endl;
 
     rs2::pipeline pipe_temp;
@@ -33,6 +35,7 @@ int realsenseStreamThread() {
         depth_sensor.set_option(RS2_OPTION_LASER_POWER, 0.f); // Disable laser
     }
     pipe_temp.stop();
+    rs2::pipeline pipe;
 
     std::cout << color_fmt_blue << "realsenseThread:: Realsense camera configured. Laser set to off." << color_fmt_reset << std::endl;
 
@@ -60,6 +63,8 @@ int realsenseStreamThread() {
     bool skip_imu_packet = false;
     uint64_t fps_image = 0, fps_imu = 0;
     rs2_vector dat_prev = {0.0f, 0.0f, 0.0f};
+    int skip_frames = 0;
+
 
     auto callback = [&](const rs2::frame& frame)
     {
@@ -79,9 +84,10 @@ int realsenseStreamThread() {
         if (auto frame_motion = frame.as<rs2::motion_frame>()) {
             pose_counter++;
             dat = frame_motion.get_motion_data();
-            imu_frame.rate[0] = (dat.x - dat_prev.x)*0.005f;
-            imu_frame.rate[1] = (dat.y - dat_prev.y)*0.005f;
-            imu_frame.rate[2] = (dat.z - dat_prev.z)*0.005f;
+            imu_frame.rate[2] = (dat.x + dat_prev.x)*0.5f*0.005f;
+            imu_frame.rate[0] = -(dat.y + dat_prev.y)*0.5f*0.005f;
+            imu_frame.rate[1] = -(dat.z + dat_prev.z)*0.5f*0.005f;
+            dat_prev = dat;
             imu_frame.ts = get_us();
 
             if (!skip_imu_packet) {
@@ -101,7 +107,6 @@ int realsenseStreamThread() {
                               << std::endl;
                     exit_flag = 1;
                     quitD455 = true;
-                    break;
                 }
             } else {
                 skip_imu_packet = false;
@@ -114,11 +119,15 @@ int realsenseStreamThread() {
             image_frame.frame = image;
             image_frame.ts = get_us();
 
-            if (queueImages.push(image_frame) == false) {
-                std::cout << color_fmt_blue << "realsenseThread:: Error!:: Image queue full!!" << color_fmt_reset << std::endl;
-                exit_flag = 1;
-                quitD455 = true;
-                break;
+            if (skip_frames < FRAMES_TO_SKIP) {
+                skip_frames++;
+            } else {
+                skip_frames = 0;
+                if (queueImages.push(image_frame) == false) {
+                    std::cout << color_fmt_blue << "realsenseThread:: Error!:: Image queue full!!" << color_fmt_reset << std::endl;
+                    exit_flag = 1;
+                    quitD455 = true;
+                }
             }
             frame_counter++;
         }
@@ -148,6 +157,7 @@ int realsenseStreamThread() {
     while (!quitD455) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+    return 0;
 }
 
 catch (const rs2::error & e)
